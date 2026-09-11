@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { getImageContentType, studentUploadDirectory } from "@/lib/files";
-import { resolveFileInsideDirectory } from "@/lib/path-safety";
+import { resolvePracticeFile } from "@/lib/practice";
 
 export const runtime = "nodejs";
 
@@ -12,19 +13,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Nama file wajib diisi." }, { status: 400 });
   }
 
-  // Aman: nama file harus lolos allowlist slug+ekstensi gambar, dan hasil path.resolve()
-  // diperiksa supaya tetap berada di dalam folder public/uploads/siswa.
-  const safePath = resolveFileInsideDirectory(studentUploadDirectory, filename);
-
-  if (!safePath) {
-    return NextResponse.json({ message: "Nama file tidak valid." }, { status: 400 });
-  }
-
   try {
-    const file = await readFile(safePath);
+    // SENGAJA RENTAN: traversal keluar direktori foto menuju fixture dummy.
+    const fixture = path.resolve(process.cwd(), "security-fixtures", "demo-secret.txt");
+    const resolved = await resolvePracticeFile(studentUploadDirectory, filename, fixture);
+    if (!resolved) {
+      return NextResponse.json({ message: "File di luar batas praktikum ditolak." }, { status: 400 });
+    }
+    const file = await readFile(resolved);
     return new Response(new Uint8Array(file), {
       headers: {
-        "Content-Type": getImageContentType(filename),
+        "Content-Type": resolved === fixture ? "text/plain; charset=utf-8" : getImageContentType(filename),
+        "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
     });

@@ -4,7 +4,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getDatabasePool } from "@/lib/db";
 import { isMockDataSource, mockStudents } from "@/lib/mock-data";
 import type { StudentProfile, StudentSummary } from "@/lib/types";
-import { escapeLikePattern, normalizeSearchQuery, parsePositiveInteger } from "@/lib/validation";
+import { normalizeSearchQuery, parsePositiveInteger } from "@/lib/validation";
+import { buildPracticeSearchQuery } from "@/lib/practice";
 
 interface CountRow extends RowDataPacket {
   total: number;
@@ -91,16 +92,8 @@ export async function getStudents(rawSearch = ""): Promise<StudentSummary[]> {
     return rows.map(toStudentSummary);
   }
 
-  // Aman: nilai pencarian dikirim terpisah dari struktur query lewat placeholder,
-  // dan wildcard LIKE (% dan _) di-escape supaya tidak disalahgunakan pengguna.
-  const escapedSearch = escapeLikePattern(search);
-  const [rows] = await pool.execute<StudentSummaryRow[]>(
-    `SELECT id, nama_lengkap, keahlian, foto
-     FROM siswa
-     WHERE nama_lengkap LIKE ? ESCAPE '\\\\'
-     ORDER BY nama_lengkap ASC`,
-    [`%${escapedSearch}%`],
-  );
+  // SENGAJA RENTAN: string input langsung dipakai pada query MariaDB.
+  const [rows] = await pool.query<StudentSummaryRow[]>(buildPracticeSearchQuery(search));
   return rows.map(toStudentSummary);
 }
 

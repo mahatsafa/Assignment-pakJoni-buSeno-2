@@ -1,92 +1,33 @@
-# Analisis Keamanan Website Profil XI TKJ 3
+# Analisis tiga celah dan perbaikannya
+Website yang dibandingkan sama: beranda, siswa, akun, komentar, dan pembuka foto. Tidak ada dashboard lab tambahan.
 
-Dokumen ini membandingkan pola rentan pada branch `vulnerable` dengan implementasi yang sudah diperbaiki pada branch `main`. Branch rentan hanya boleh dijalankan di komputer lokal atau jaringan laboratorium yang terisolasi. Jangan deploy branch `vulnerable` ke internet.
-
-## Ringkasan
-
-| Kerentanan | Penyebab utama | Dampak | Perbaikan pada `main` |
+| Fitur / lokasi | Penyebab pada vulnerable | Dampak yang didemonstrasikan | Perbaikan pada repaired |
 | --- | --- | --- | --- |
-| SQL Injection | Input pencarian digabung langsung ke string SQL | Pembacaan atau manipulasi data yang tidak diizinkan | Prepared statement, validasi, dan escaping wildcard `LIKE` |
-| Cross-Site Scripting (XSS) | Komentar ditampilkan sebagai HTML tanpa sanitasi | JavaScript berbahaya berjalan pada browser pengunjung | Validasi, sanitasi teks biasa, dan output encoding React |
-| Path Traversal | Path file dari pengguna langsung digabung ke path server | File di luar folder upload dapat terbaca | Allowlist nama/ekstensi, `path.resolve`, dan pemeriksaan batas direktori |
+| Pencarian / lib/students.ts | Input disisipkan langsung ke string SQL | UNION dapat mengungkap username/email akun dummy | execute dengan placeholder ?, input dibatasi, wildcard LIKE di-escape |
+| Komentar / API comments + CommentSection.tsx | HTML mentah tersimpan lalu masuk dangerouslySetInnerHTML | Script berjalan saat profil dilihat; bisa membaca data akun same-origin | Validasi + sanitasi plain-text dan output encoding React, tanpa sink HTML mentah |
+| Buka foto / API files | Nama/path dari pengguna dipakai untuk mengakses file | File fixture di luar direktori foto terbaca | Allowlist basename/ekstensi, pemeriksaan batas path, realpath untuk symlink |
 
-## A. SQL Injection
+## SQL Injection
+Pemisahan kode SQL dari data input adalah inti perbaikan; validasi panjang saja tidak cukup. Endpoint autentikasi tetap menggunakan prepared statement dan pemeriksaan hash di kedua versi. Latihan pengungkapan email dilakukan lewat pencarian, bukan menambahkan endpoint yang sengaja mengembalikan daftar email. Query raw benar-benar dikirim ke MariaDB; mock tidak mensimulasikan serangan.
 
-### Penyebab
+Dampak di sistem tanpa pembatasan dapat lebih luas bergantung hak DB. Dalam tugas ini akun DB harus hanya punya SELECT/INSERT/UPDATE/DELETE pada database dummy. Jangan beri hak FILE atau hak pada database lain. Referensi: [OWASP SQL Injection Prevention](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html).
 
-SQL Injection muncul ketika input pengguna menjadi bagian dari struktur query. Contoh pola yang salah adalah membuat query dengan konkatenasi string. Pada kondisi tersebut, karakter SQL dari pengguna dapat mengubah arti query.
+## Stored XSS
+Registrasi/login tidak memperbaiki XSS: pengguna terdaftar masih dapat menyimpan konten berbahaya. Pada repaired kebijakan komentar adalah teks biasa, bukan rich text. Sanitasi sederhana di lib/validation.ts tidak boleh dipakai untuk mengizinkan HTML; jika nanti membutuhkan rich text gunakan sanitizer HTML yang sesuai. Output harus di-encode sesuai konteks. Referensi: [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html).
 
-### Dampak
+HttpOnly membantu melindungi cookie dari pembacaan JavaScript, tetapi script same-origin masih bisa melakukan request sebagai sesi pengguna. Contoh latihan hanya alert lokal dan pembacaan email dummy sendiri, tanpa pengiriman data ke layanan luar.
 
-- Data siswa dapat terbaca di luar pencarian yang dimaksud.
-- Struktur database dapat terungkap melalui error.
-- Pada akun database dengan izin berlebihan, data dapat diubah atau dihapus.
+## Path Traversal
+path.resolve saja tidak mengamankan input; fungsi tersebut dapat menghasilkan lokasi di luar folder dasar. Repaired memeriksa nama, ekstensi, lokasi relatif dan path nyata. Direktori foto harus dikelola server dan tidak writable oleh pengguna website. Pagar luar pada vulnerable sengaja membatasi pembacaan tambahan ke satu fixture dummy, tetapi tetap memperlihatkan pelanggaran batas folder foto.
 
-### Perbaikan
+## Akun dan sesi
+- Username/email unik; form register tidak membuat profil siswa baru.
+- Password: scrypt dengan salt acak per akun, tidak disimpan/dikembalikan sebagai plaintext. Parameter N=32768, r=8, p=3 sesuai salah satu konfigurasi rekomendasi [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+- Cookie token acak 32 byte; database hanya menyimpan SHA-256 token. Cookie HttpOnly, SameSite=Lax, Secure pada HTTPS.
+- Sesi 8 jam, diverifikasi server, dirotasi saat login dan dicabut saat logout.
+- Request mutasi diperiksa Origin, JSON dibatasi 4 KB, respons tidak menampilkan hash password.
+- Rate limiter per proses untuk percobaan login/registrasi/komentar; bukan solusi multi-instance.
+- Email belum diverifikasi; tidak ada password reset, role admin, atau moderasi UI. Jangan menganggap login ini identitas resmi siswa.
 
-Implementasi aman berada di `lib/students.ts` dan menggunakan `pool.execute()` dengan placeholder `?`. Nilai pencarian dikirim terpisah dari perintah SQL. Query juga dinormalisasi, dibatasi panjangnya, dan wildcard `%` serta `_` di-escape.
-
-### Verifikasi
-
-1. Jalankan branch `main`.
-2. Masukkan teks yang mengandung tanda kutip atau operator SQL pada pencarian.
-3. Aplikasi harus memperlakukan seluruh input sebagai teks pencarian dan tidak menampilkan error database.
-
-## B. Cross-Site Scripting (XSS)
-
-### Penyebab
-
-XSS terjadi ketika input komentar dipercaya sebagai HTML dan dimasukkan ke halaman tanpa sanitasi atau encoding. Stored XSS lebih berbahaya karena payload tersimpan di database dan dikirim kepada setiap pengunjung profil.
-
-### Dampak
-
-- Isi halaman dapat dimanipulasi.
-- Informasi yang dapat diakses JavaScript pada origin aplikasi dapat dicuri.
-- Pengunjung dapat diarahkan ke halaman palsu.
-
-### Perbaikan
-
-- `lib/validation.ts` menormalkan input, menghapus control character, menghapus karakter pembentuk tag, dan membatasi panjang.
-- `CommentSection.tsx` menampilkan komentar sebagai nilai React biasa, bukan `dangerouslySetInnerHTML`. React melakukan output encoding secara otomatis.
-- API tidak mengembalikan detail error internal.
-- Kolom honeypot sederhana membantu menolak bot otomatis.
-
-### Verifikasi
-
-1. Kirim komentar berisi karakter tag HTML.
-2. Karakter pembentuk tag harus dihapus atau ditampilkan hanya sebagai teks.
-3. Tidak ada script atau event handler yang dijalankan browser.
-
-## C. Path Traversal
-
-### Penyebab
-
-Path Traversal terjadi saat parameter nama file langsung dipakai pada `readFile()` atau digabung ke direktori dasar tanpa pemeriksaan. Segmen seperti parent-directory dapat membuat akses keluar dari folder upload.
-
-### Dampak
-
-- File konfigurasi dan source code server dapat terbaca.
-- Secret pada file environment dapat bocor.
-- Informasi server dapat membantu serangan lanjutan.
-
-### Perbaikan
-
-Route aman berada di `app/api/files/route.ts`.
-
-- Nama file harus cocok dengan pola slug dan ekstensi gambar yang diizinkan.
-- `path.basename(filename)` harus sama dengan input.
-- Hasil `path.resolve()` diperiksa menggunakan `path.relative()` agar tetap di dalam `public/uploads/siswa`.
-- Response memakai `X-Content-Type-Options: nosniff`.
-
-### Verifikasi
-
-1. Buka nama foto siswa yang valid; gambar harus tampil.
-2. Coba nama file dengan direktori induk, path absolut, atau ekstensi selain gambar.
-3. Server harus mengembalikan status `400` tanpa membocorkan path internal.
-
-## Catatan Operasional
-
-- Gunakan akun MariaDB khusus aplikasi dengan hak minimum pada satu database.
-- Jangan commit `.env.local`.
-- Jangan gunakan branch `vulnerable` sebagai target deployment.
-- Jalankan `npm run check` dan `npm run build` sebelum push.
+## Verifikasi
+Ulangi input pada VULNERABLE_VERSION.md terhadap masing-masing versi dengan database terpisah. Buktikan kondisi sebelum/sesudah, bukan sekadar menunjukkan potongan kode. Gunakan CHECKLIST.md untuk memisahkan test unit, HTTP/database, dan browser. Tidak ada klaim bahwa paket ini telah diaudit penuh untuk produksi.

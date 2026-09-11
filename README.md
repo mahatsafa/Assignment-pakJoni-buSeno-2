@@ -1,149 +1,64 @@
-# Website Profil Kelas XI TKJ 3
+# Website Kelas XI TKJ 3 — foto kelas & akun
+> **PAKET VULNERABLE:** hanya `npm run dev` di localhost. Database harus lokal dan bernama berakhiran `_practice` atau `_test`. Jangan deploy atau pakai kredensial asli.
 
-Website profil kelas berbasis Next.js, React, TypeScript, Tailwind CSS, dan MariaDB. Project ini memiliki dua tujuan:
+Next.js App Router + React + TypeScript + Tailwind CSS + MariaDB.
+Pembaruan berdasarkan GitHub main commit `a584f32`, 10 September 2026. Tidak ada push atau deployment otomatis.
 
-1. Menampilkan profil kelas dan portfolio siswa secara dinamis.
-2. Menjadi laboratorium pembelajaran SQL Injection, Cross-Site Scripting (XSS), dan Path Traversal.
+## Mulai dari sini
+- Foto kelas asli di beranda dan halaman akun, tanpa memotong foto.
+- Daftar siswa, pencarian, profil, komentar, dan pembuka foto tetap di website yang sama.
+- `/register`: buat username, email, dan password sendiri.
+- `/login`: masuk dengan username **atau** email.
+- `/akun`: lihat identitas sendiri dan logout.
+- Komentar baru memerlukan login; penulis diambil dari sesi server.
+- Akun dan sesi disimpan di MariaDB. Password di-hash dengan scrypt + salt, bukan plaintext.
+- Tidak ada pengiriman email, verifikasi kepemilikan email, atau reset password.
 
-## Struktur Branch
+## Dua paket source, website yang sama
+| Paket / branch lokal | Isi |
+| --- | --- |
+| `feature/class-photo-auth` / ZIP repaired | Tiga celah diperbaiki. Basis untuk melanjutkan versi publik setelah review. |
+| `practice/class-photo-auth` / ZIP vulnerable | Celah sengaja berada pada pencarian, komentar, dan pembuka foto. Hanya localhost dan akun dummy. |
 
-| Branch | Kegunaan | Boleh dideploy publik? |
-| --- | --- | --- |
-| `main` | Versi aman dan versi yang digunakan untuk demo | Ya |
-| `vulnerable` | Versi praktikum yang sengaja memiliki tiga kerentanan | Tidak |
+Tidak ada dashboard lab atau tombol mengganti mode. Gunakan folder dan database berbeda untuk kedua versi. Jangan mengekstrak versi repaired di atas folder vulnerable: file khusus versi rentan bisa tertinggal.
 
-> **Peringatan:** jalankan branch `vulnerable` hanya pada localhost atau jaringan laboratorium yang terisolasi. Jangan memakai data rahasia atau database produksi.
-
-## Fitur
-
-- Homepage profil XI TKJ 3 dengan jumlah siswa dinamis.
-- Daftar siswa dalam bentuk card.
-- Profil individual siswa.
-- Pencarian siswa berdasarkan nama.
-- Komentar/apresiasi siswa.
-- File viewer foto siswa.
-- Database MariaDB.
-- Dokumentasi perbandingan kode rentan dan aman.
-
-## Persyaratan
-
-- Node.js 24 atau versi LTS yang kompatibel dengan Next.js 16.
-- npm.
-- MariaDB 10.6 atau lebih baru.
-- Git.
-
-## Instalasi
-
-### 1. Clone repository
-
-```bash
-git clone https://github.com/muhammadanshori34tkj-web/Tugas_web_kelas.git
-cd Tugas_web_kelas
-```
-
-### 2. Install dependency
+## Menjalankan
+Gunakan Node.js **24 LTS** untuk seluruh perintah termasuk test TypeScript. Node 20 milikmu dapat menjalankan sebagian perintah, tetapi runner test project ini membutuhkan dukungan TypeScript bawaan Node yang lebih baru.
 
 ```bash
 npm ci
 ```
 
-### 3. Siapkan environment
+Jika belum ada `.env.local`, salin `.env.example`. Jika sudah ada, **jangan hapus isinya**; tambahkan `APP_ORIGIN=http://127.0.0.1:3000` dan pertahankan kredensial database yang benar. Nilai contoh password bukan password MariaDB yang otomatis dibuat.
 
-```bash
-cp .env.example .env.local
-```
-
-Edit `.env.local` dan isi konfigurasi MariaDB serta nama sekolah. File ini sudah dilindungi oleh `.gitignore` dan tidak boleh di-commit.
-
-```env
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=tkj_app
-DB_PASSWORD=password-lokal
-DB_NAME=tkj3_profile
-DATA_SOURCE=mariadb
-NEXT_PUBLIC_SCHOOL_NAME=Nama Sekolah
-```
-
-Untuk preview UI di perangkat yang belum memiliki MariaDB, ubah sementara `DATA_SOURCE=mock`. Komentar pada mode mock hanya tersimpan di memori dan akan hilang ketika server dimatikan.
-
-### 4. Siapkan database
-
-Instalasi baru:
-
-```bash
-mariadb -u root -p < database/schema.sql
-```
-
-Jika tabel `siswa` dan 32 data siswa sudah ada, cukup tambahkan tabel komentar:
-
-```bash
-mariadb -u root -p tkj3_profile < database/migrations/001_add_student_comments.sql
-```
-
-Gunakan akun database khusus aplikasi dan beri hak hanya pada database project:
-
-```sql
-CREATE USER IF NOT EXISTS 'tkj_app'@'localhost' IDENTIFIED BY 'ganti-password-kuat';
-GRANT SELECT, INSERT, UPDATE, DELETE ON tkj3_profile.* TO 'tkj_app'@'localhost';
-FLUSH PRIVILEGES;
-```
-
-### 5. Jalankan aplikasi
-
-```bash
-npm run dev
-```
-
-Buka `http://localhost:3000`.
-
-Pada branch `vulnerable`, ketiga kerentanan sudah tertanam langsung pada
-fitur pencarian, komentar, dan file viewer. Tidak ada halaman lab tambahan.
-Perintah `npm run dev` membatasi server ke `127.0.0.1`. Ikuti
-[panduan versi rentan](docs/VULNERABLE_VERSION.md) hanya pada komputer lokal.
-
-Periksa integrasi MariaDB sebelum membuka web:
+Ikuti [MARIADB_SETUP.md](docs/MARIADB_SETUP.md) untuk migrasi. Kemudian:
 
 ```bash
 npm run db:check
+npm run dev
 ```
 
-## Pemeriksaan Sebelum Push
+Buka **http://127.0.0.1:3000**. Jangan berganti ke `localhost` jika APP_ORIGIN memakai `127.0.0.1`; origin harus sama persis.
 
+Buka Daftar untuk membuat akun. Untuk latihan gunakan `siswa_demo`, email `siswa@example.test`, dan password baru 12–128 karakter yang hanya dipakai untuk tugas ini. Tidak ada akun admin tersembunyi atau password bawaan.
+
+`DATA_SOURCE=mock` hanya untuk melihat UI tanpa MariaDB. Login/registrasi tidak tersedia dan SQL Injection tidak dapat dibuktikan pada mock; tidak ada fallback database diam-diam.
+
+## Pemeriksaan
 ```bash
 npm run check
 npm run build
-git status
 ```
-
-Pastikan `.env.local`, `.next`, dan `node_modules` tidak muncul pada `git status`.
-
-## Endpoint Utama
-
-| Endpoint | Fungsi |
-| --- | --- |
-| `/` | Homepage profil kelas |
-| `/siswa` | Daftar dan pencarian siswa |
-| `/siswa/[id]` | Profil individual dan komentar |
-| `/api/search?q=nama` | API pencarian siswa |
-| `/api/siswa` | API daftar siswa |
-| `/api/comments` | Menyimpan komentar siswa |
-| `/api/files?name=foto.jpg` | Membuka file foto siswa |
-| `/api/health` | Memeriksa koneksi aplikasi dan database |
+Build tidak membuktikan koneksi database. Uji dengan MariaDB mengikuti [CHECKLIST.md](docs/CHECKLIST.md). Pada versi vulnerable, hasil build tidak boleh dipublikasikan dan permintaan production ditolak.
 
 ## Dokumentasi
+- [Integrasi MariaDB](docs/MARIADB_SETUP.md)
+- [Praktikum langsung di fitur website](docs/VULNERABLE_VERSION.md)
+- [Analisis penyebab, dampak, dan perbaikan](docs/SECURITY_ANALYSIS.md)
+- [Checklist pengujian](docs/CHECKLIST.md)
+- [Cara push tanpa menimpa main](docs/PUSH_GITHUB.md)
 
-- [Progress project](PROGRESS.md)
-- [Analisis keamanan](docs/SECURITY_ANALYSIS.md)
-- [Panduan integrasi MariaDB](docs/MARIADB_SETUP.md)
-- [Panduan branch vulnerable](docs/VULNERABLE_VERSION.md)
-- [Features, functions, and benefits (English)](docs/WEBSITE_FEATURES_FUNCTIONS_BENEFITS.md)
-- [Skema database](database/schema.sql)
+## Sebelum dibagikan
+Jangan commit `.env.local`, password, session cookie, database dump, atau `node_modules`. ZIP source tidak menyertakan file tersebut maupun riwayat Git lama. Foto siswa dari repo dipertahankan; pastikan izin sekolah/teman sebelum publikasi foto dan identitas. Hanya data dummy untuk akun praktikum.
 
-## Pembagian Kerja Kelompok
-
-Contoh pembagian untuk dua anggota:
-
-- Anggota 1: UI/UX, halaman, component, dan pengujian tampilan.
-- Anggota 2: API, MariaDB, security lab, dan dokumentasi.
-- Keduanya melakukan review, testing, dan presentasi bersama.
+Versi repaired memperbaiki tiga celah yang dibahas, **bukan sertifikasi keamanan produksi**. Rate limit masih per proses, email belum diverifikasi, belum ada pemulihan akun dan moderasi komentar. Deployment publik memerlukan HTTPS, review keamanan, kebijakan data siswa, dan pembatasan registrasi yang sesuai. Jangan deploy versi vulnerable.

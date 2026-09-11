@@ -1,5 +1,6 @@
 -- Skema instalasi baru untuk Website Profil XI TKJ 3.
 -- Jalankan sebagai akun MariaDB yang memiliki izin membuat database/tabel.
+-- Setelah ini, jalankan database/migrations/002_add_accounts.sql pada tkj3_profile.
 
 CREATE DATABASE IF NOT EXISTS tkj3_profile
   CHARACTER SET utf8mb4

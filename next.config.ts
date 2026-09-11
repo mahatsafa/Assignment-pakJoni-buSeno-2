@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
+  // Versi praktikum: permintaan internal optimizer tidak membawa Host,
+  // sehingga ditolak proxy lokal. Sajikan gambar asli tanpa optimizer.
+  images: {
+    unoptimized: true,
+  },
   poweredByHeader: false,
   async headers() {
     return [

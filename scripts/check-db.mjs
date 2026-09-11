@@ -29,8 +29,13 @@ try {
   console.log(`Database: ${required("DB_NAME")}`);
   console.log(`Jumlah siswa: ${studentRows[0].total}`);
   console.log(`Jumlah komentar: ${commentRows[0].total}`);
+  const [accountRows] = await connection.query("SELECT COUNT(*) AS total FROM users");
+  await connection.query("SELECT token_hash FROM sessions LIMIT 0");
+  console.log(`Jumlah akun: ${accountRows[0].total}`);
+  console.log("Tabel users dan sessions siap.");
 } catch (error) {
   console.error("Pemeriksaan MariaDB gagal:", error.message);
+  if (error.code === "ER_NO_SUCH_TABLE") console.error("Jalankan migrasi 001 (komentar) dan 002 (akun) pada database ini.");
   process.exitCode = 1;
 } finally {
   await connection?.end();

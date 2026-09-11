@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
 import { createComment } from "@/lib/comments";
-import { ValidationError, validateCommentPayload } from "@/lib/validation";
+import { validatePracticeComment } from "@/lib/practice";
+import { getCurrentAccount } from "@/lib/auth";
+import { HttpError, readJsonBody, requireSameOrigin, rateLimit } from "@/lib/http-security";
+import { apiError } from "@/lib/api-error";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const payload = validateCommentPayload(body);
-
-    // Honeypot: field "website" seharusnya selalu kosong (disembunyikan dari pengguna asli).
-    // Bila terisi, kemungkinan besar itu bot — pura-pura sukses tanpa menyimpan apa pun.
-    if (payload.website) {
-      return NextResponse.json(
-        { comment: { id: 0, studentId: payload.studentId, authorName: payload.authorName, content: payload.content, createdAt: new Date().toISOString() } },
-        { status: 201 },
-      );
-    }
+    requireSameOrigin(request);
+    const account = await getCurrentAccount();
+    if (!account) throw new HttpError("Silakan masuk untuk menulis komentar.", 401);
+    rateLimit(`comment:${account.id}`, 15, 60_000);
+    const body = await readJsonBody(request);
+    const payload = validatePracticeComment({ ...body, authorName: account.username });
 
     const comment = await createComment({
       studentId: payload.studentId,
@@ -23,18 +21,10 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ comment }, { status: 201 });
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
-    }
-
     if (error instanceof Error && error.message === "STUDENT_NOT_FOUND") {
       return NextResponse.json({ message: "Siswa tidak ditemukan." }, { status: 404 });
     }
 
-    console.error("Comment insert failed", error);
-    return NextResponse.json(
-      { message: "Komentar gagal disimpan." },
-      { status: 500 },
-    );
+    return apiError(error);
   }
 }

@@ -35,3 +35,10 @@ next-env.d.ts
 .vercel
 
 database_dump.sql
+
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+database_dump.sql

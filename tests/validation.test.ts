@@ -23,7 +23,7 @@ test("query pencarian dinormalisasi dan wildcard LIKE di-escape", () => {
   assert.equal(escapeLikePattern("100%_aman"), "100\\%\\_aman");
 });
 
-test("komentar disimpan sebagai teks biasa", () => {
+test("helper validasi repaired menghasilkan teks biasa", () => {
   assert.equal(sanitizePlainText("<b>Halo</b>", 100), "bHalo/b");
   assert.throws(() => sanitizePlainText("", 100), ValidationError);
 
@@ -38,7 +38,7 @@ test("komentar disimpan sebagai teks biasa", () => {
   assert.equal(payload.content.includes(">"), false);
 });
 
-test("file viewer menolak traversal dan ekstensi non-gambar", () => {
+test("helper path repaired menolak traversal dan ekstensi non-gambar", () => {
   const base = path.resolve("/tmp/student-photos");
 
   assert.equal(

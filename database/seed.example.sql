@@ -1,6 +1,6 @@
 -- Contoh format data. Data siswa asli tetap berada di database tim.
 -- Sesuaikan kolomnya, lalu jalankan hanya jika membutuhkan data uji baru.
-USE tkj3_profile;
+-- Database dipilih lewat argumen CLI.
 
 INSERT INTO siswa (
   nama_lengkap,

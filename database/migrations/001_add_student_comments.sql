@@ -1,5 +1,5 @@
 -- Jalankan migration ini pada database lama yang tabel `siswa`-nya sudah ada.
-USE tkj3_profile;
+-- Database dipilih lewat argumen CLI; tidak mengubah database aktif.
 
 CREATE TABLE IF NOT EXISTS student_comments (
   id BIGINT NOT NULL AUTO_INCREMENT,

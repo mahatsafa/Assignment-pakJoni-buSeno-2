@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { siteConfig } from "@/lib/site";
-import { getFeaturedStudents, getStudentCount } from "@/lib/students";
+import { getStudentCount } from "@/lib/students";
 
 const aboutCards = [
   ["Network", "Mempelajari administrasi jaringan, routing, switching, dan layanan infrastruktur."],
@@ -19,10 +19,7 @@ const securityLabs = [
 
 export default async function Home() {
   await connection();
-  const [studentCount, featuredStudents] = await Promise.all([
-    getStudentCount(),
-    getFeaturedStudents(),
-  ]);
+  const studentCount = await getStudentCount();
 
   return (
     <main>
@@ -69,7 +66,7 @@ export default async function Home() {
               </div>
               <div className="h-11 w-px bg-white/10" />
               <div>
-                <p className="text-2xl font-black tracking-tight text-white">3 Lab</p>
+                <p className="text-2xl font-black tracking-tight text-white">3 Topik</p>
                 <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">Keamanan web</p>
               </div>
               <div className="h-11 w-px bg-white/10" />
@@ -80,42 +77,20 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="relative mx-auto h-[34rem] w-full max-w-xl" aria-label="Kolase siswa XI TKJ 3">
-            <div className="absolute inset-8 rounded-[3rem] border border-emerald-300/20 bg-emerald-300/10 blur-2xl" />
-            {featuredStudents.map((student, index) => {
-              const positions = [
-                "left-0 top-16 rotate-[-5deg]",
-                "right-2 top-0 rotate-[4deg]",
-                "bottom-0 left-12 rotate-[3deg]",
-                "bottom-10 right-0 rotate-[-4deg]",
-              ];
-
-              return (
-                <Link
-                  key={student.id}
-                  href={`/siswa/${student.id}`}
-                  className={`absolute ${positions[index]} group h-64 w-44 overflow-hidden rounded-[2rem] border-4 border-slate-900 bg-slate-800 shadow-2xl transition duration-300 hover:z-20 hover:rotate-0 hover:scale-105 sm:h-72 sm:w-52`}
-                >
-                  {student.foto && (
-                    <Image
-                      src={`/uploads/siswa/${encodeURIComponent(student.foto)}`}
-                      alt={student.namaLengkap}
-                      fill
-                      sizes="208px"
-                      className="object-cover"
-                    />
-                  )}
-                  <span className="absolute inset-x-3 bottom-3 rounded-2xl bg-slate-950/75 px-3 py-2 text-xs font-extrabold text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
-                    {student.namaLengkap}
-                  </span>
-                </Link>
-              );
-            })}
-            <div className="absolute left-1/2 top-1/2 z-10 grid h-24 w-24 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[10px] border-slate-950 bg-emerald-400 text-center text-sm font-black leading-tight text-slate-950 shadow-2xl">
-              WE
-              <br /> BUILD
+          <figure className="relative mx-auto w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/15 bg-white/[0.04] shadow-2xl shadow-emerald-950/40">
+            <div className="flex items-center justify-between gap-3 px-6 py-5 text-xs font-bold uppercase tracking-widest">
+              <span className="text-emerald-300">Our class, our story</span>
+              <span className="text-slate-400">XI TKJ 3</span>
             </div>
-          </div>
+            <a href="/images/kelas-xi-tkj-3.png" target="_blank" rel="noreferrer" aria-label="Buka foto bersama kelas dalam ukuran penuh">
+              <Image src="/images/kelas-xi-tkj-3.png" width={1600} height={900} alt="Foto bersama siswa-siswi XI TKJ 3 di depan latar PILKETOS" preload sizes="(max-width: 1024px) 100vw, 50vw" className="h-auto w-full" />
+            </a>
+            <figcaption className="p-6 sm:p-8">
+              <p className="text-2xl font-black tracking-tight">Bukan sekadar satu kelas.</p>
+              <p className="mt-3 text-sm leading-6 text-slate-400">Tempat berbagi ide, membangun karya, dan belajar bersama. Inilah cerita kami.</p>
+              <Link href="/register" className="mt-6 inline-flex text-sm font-extrabold text-emerald-300 hover:text-emerald-200">Jadi bagian dari ruang kelas →</Link>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
@@ -142,12 +117,12 @@ export default async function Home() {
       <section id="keamanan" className="bg-emerald-400">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-700">Web security laboratory</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-700">Belajar keamanan lewat website ini</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] text-slate-950 sm:text-5xl">
               Tidak cukup hanya bisa membuat. Kami belajar mengamankan.
             </h2>
             <p className="mt-5 max-w-xl leading-7 text-slate-800">
-              Project ini membandingkan implementasi yang sengaja rentan dengan versi yang sudah diperbaiki. Lab rentan dijalankan hanya di komputer lokal atau jaringan kelas yang terisolasi.
+              Pencarian siswa, komentar profil, dan fitur buka foto menjadi bahan belajar keamanan aplikasi. Versi praktikum dijalankan di localhost dengan akun dummy, lalu dibandingkan dengan kode yang sudah diperbaiki.
             </p>
           </div>
           <div className="grid gap-3">

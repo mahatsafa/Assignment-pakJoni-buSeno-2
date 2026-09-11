@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 127.0.0.1",
     "db:check": "node --env-file=.env.local scripts/check-db.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

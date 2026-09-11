@@ -3,13 +3,14 @@ services:
     image: mariadb:11.4
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: rootpassword_ganti_ini
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Isi DB_ROOT_PASSWORD pada .env.local}
       MARIADB_DATABASE: tkj3_profile
       MARIADB_USER: tkj_app
-      MARIADB_PASSWORD: tkj_app_password_ganti_ini
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Isi DB_PASSWORD pada .env.local}
     volumes:
       - db_data:/var/lib/mysql
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+      - ./database/migrations/002_add_accounts.sql:/docker-entrypoint-initdb.d/03-accounts.sql:ro
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -26,12 +27,13 @@ services:
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: tkj_app
-      DB_PASSWORD: tkj_app_password_ganti_ini
+      DB_PASSWORD: ${DB_PASSWORD:?Isi DB_PASSWORD pada .env.local}
       DB_NAME: tkj3_profile
       DATA_SOURCE: mariadb
       NEXT_PUBLIC_SCHOOL_NAME: SMK Telkom Malang
+      APP_ORIGIN: http://127.0.0.1:3000
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
 volumes:
   db_data:

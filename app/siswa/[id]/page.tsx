@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import CommentSection from "@/components/CommentSection";
 import { getCommentsForStudent } from "@/lib/comments";
 import { getStudentById } from "@/lib/students";
+import { getCurrentAccount } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Profil Siswa",
@@ -37,6 +38,7 @@ export default async function StudentProfilePage({
   }
 
   const comments = await getCommentsForStudent(student.id);
+  const account = await getCurrentAccount();
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -118,7 +120,7 @@ export default async function StudentProfilePage({
           </div>
         </article>
 
-        <CommentSection studentId={student.id} initialComments={comments} />
+        <CommentSection studentId={student.id} initialComments={comments} username={account?.username ?? null} />
       </section>
     </main>
   );

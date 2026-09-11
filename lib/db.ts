@@ -2,6 +2,7 @@ import "server-only";
 
 import mysql, { type Pool } from "mysql2/promise";
 import { isMockDataSource } from "@/lib/mock-data";
+import { requirePracticeDatabase } from "@/lib/practice-guard";
 
 const globalForDatabase = globalThis as typeof globalThis & {
   tkj3Pool?: Pool;
@@ -18,6 +19,7 @@ function requiredEnvironment(name: string, fallback?: string): string {
 }
 
 export function getDatabasePool(): Pool {
+  requirePracticeDatabase();
   if (!globalForDatabase.tkj3Pool) {
     const port = Number(requiredEnvironment("DB_PORT", "3306"));
 

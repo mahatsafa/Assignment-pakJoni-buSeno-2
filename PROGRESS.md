@@ -1,35 +1,23 @@
-# Progress Project Website XI TKJ 3
+# Progress — pembaruan foto kelas & akun
 
-## Selesai pada branch `main`
+Basis GitHub main: a584f32, 10 September 2026.
 
-- Next.js App Router, TypeScript, dan Tailwind CSS.
-- Homepage profil kelas dengan jumlah siswa dinamis dan kolase profil.
-- Daftar siswa, pencarian aman, serta halaman profil individual.
-- Data Access Layer untuk seluruh query MariaDB.
-- Prepared statement dan validasi ID/pencarian.
-- Form komentar dengan validasi, sanitasi, output encoding, dan prepared statement.
-- File viewer aman dengan allowlist dan pembatasan direktori.
-- Error handling tanpa membocorkan detail database.
-- Security headers dasar.
-- Skema database, migration komentar, contoh seed, dan dokumentasi keamanan.
-- Automated test untuk validasi SQL input, XSS input, dan path traversal.
+## Ditambahkan
+- Foto kelas asli pada hero beranda dan tampilan registrasi/login.
+- Register, login username/email, akun sendiri, logout.
+- MariaDB users + sessions lewat migrasi tambahan, tanpa menghapus siswa lama.
+- Password scrypt, sesi server, cookie HttpOnly, validasi Origin dan rate limit dasar.
+- Komentar menggunakan identitas login dari server.
+- Panduan MariaDB, push GitHub, analisis keamanan, dan checklist pengujian.
+- Script uji integrasi opt-in khusus database lokal latihan.
 
-## Branch `vulnerable`
+## Versi
+- feature/class-photo-auth: implementasi repaired sebagai pembanding.
+- practice/class-photo-auth: tiga kerentanan terintegrasi pada fitur biasa, hanya lokal.
+- Paket source tidak mengandung .env.local, node_modules, database dump, atau histori Git.
 
-- SQL Injection aktif pada fitur pencarian ketika memakai MariaDB.
-- Stored XSS aktif pada fitur komentar profil.
-- Path Traversal aktif pada file viewer dan dilengkapi fixture dummy di `security-fixtures`.
-- Ketiga kerentanan tertanam langsung pada fitur website, tanpa halaman lab tambahan.
-- Development server dibatasi ke `127.0.0.1` agar tidak terbuka ke jaringan.
-- Panduan langkah, penyebab, dampak, serta perbandingan perbaikan sudah tersedia.
-- Panduan setup dan pemeriksaan koneksi MariaDB sudah tersedia.
-- Regression test khusus membuktikan keberadaan tiga pola rentan.
-- Wajib dijalankan lokal dan tidak boleh dideploy ke internet.
+## Verifikasi
+Repaired: lint, TypeScript, 10 unit test, dan production build lulus. Pemeriksaan HTTP dilakukan dengan DATA_SOURCE=mock; bukan bukti koneksi MariaDB. Server MariaDB tidak tersedia di lingkungan pengerjaan. Alur database dan eksekusi XSS browser perlu diuji lokal sesuai docs/CHECKLIST.md.
 
-## Sebelum Demo
-
-- Isi `NEXT_PUBLIC_SCHOOL_NAME` di `.env.local`.
-- Pastikan migration `database/migrations/001_add_student_comments.sql` sudah dijalankan.
-- Jalankan `npm run db:check` untuk memeriksa koneksi dan tabel MariaDB.
-- Jalankan `npm run check` dan `npm run build`.
-- Cek foto, profil, pencarian, komentar, dan file viewer.
+## Belum dilakukan
+Tidak ada push, deployment, perubahan database tim, atau publikasi akun/foto baru. User mengisi konfigurasi MariaDB miliknya dan memutuskan publikasi setelah pengecekan izin data siswa.

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { StudentComment } from "@/lib/types";
+import Link from "next/link";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("id-ID", {
@@ -13,12 +14,13 @@ function formatDate(value: string) {
 export default function CommentSection({
   studentId,
   initialComments,
+  username,
 }: {
   studentId: number;
   initialComments: StudentComment[];
+  username: string | null;
 }) {
   const [comments, setComments] = useState(initialComments);
-  const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +34,7 @@ export default function CommentSection({
       const response = await fetch("/api/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, authorName, content }),
+        body: JSON.stringify({ studentId, content }),
       });
       const data = (await response.json()) as {
         comment?: StudentComment;
@@ -44,7 +46,6 @@ export default function CommentSection({
       }
 
       setComments((current) => [data.comment as StudentComment, ...current]);
-      setAuthorName("");
       setContent("");
       setMessage("Komentar berhasil dikirim.");
     } catch (error) {
@@ -65,18 +66,8 @@ export default function CommentSection({
           Gunakan bahasa yang sopan untuk memberikan apresiasi atau pesan yang membangun.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <label className="block text-sm font-bold text-slate-700">
-            Nama
-            <input
-              required
-              maxLength={60}
-              value={authorName}
-              onChange={(event) => setAuthorName(event.target.value)}
-              className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-normal text-slate-950 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
-              placeholder="Nama pengirim"
-            />
-          </label>
+        {username ? <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <p className="text-sm text-slate-600">Mengirim sebagai <strong>{username}</strong>.</p>
           <label className="block text-sm font-bold text-slate-700">
             Komentar
             <textarea
@@ -104,7 +95,10 @@ export default function CommentSection({
               {message}
             </p>
           )}
-        </form>
+        </form> : <div className="mt-6 rounded-2xl bg-emerald-50 p-5">
+          <p className="text-sm leading-6 text-slate-700">Masuk terlebih dahulu untuk menulis komentar dengan identitas akunmu.</p>
+          <Link href="/login" className="mt-4 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white">Masuk untuk berkomentar →</Link>
+        </div>}
       </div>
 
       <div className="rounded-[1.6rem] bg-slate-950 p-6 text-white sm:p-8">
@@ -132,9 +126,9 @@ export default function CommentSection({
                     {formatDate(comment.createdAt)}
                   </time>
                 </div>
-                                <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300">
-                  {comment.content}
-                </p>
+                {/* SENGAJA RENTAN: stored XSS di komentar website biasa. */}
+                <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-300"
+                  dangerouslySetInnerHTML={{ __html: comment.content }} />
               </article>
             ))
           )}

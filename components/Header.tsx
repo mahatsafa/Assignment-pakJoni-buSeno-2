@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/site";
+import { getCurrentAccount } from "@/lib/auth";
 
 const navigation = [
   { href: "/", label: "Beranda" },
@@ -8,7 +9,8 @@ const navigation = [
   { href: "/#keamanan", label: "Praktikum" },
 ];
 
-export default function Header() {
+export default async function Header() {
+  const account = await getCurrentAccount();
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-6 px-5 py-3 sm:px-8">
@@ -39,10 +41,10 @@ export default function Header() {
         </nav>
 
         <Link
-          href="/siswa"
+          href={account ? "/akun" : "/login"}
           className="shrink-0 rounded-full bg-emerald-400 px-4 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 sm:px-5"
         >
-          Jelajahi profil
+          {account ? "Akun saya" : "Masuk / Daftar"}
         </Link>
       </div>
 
