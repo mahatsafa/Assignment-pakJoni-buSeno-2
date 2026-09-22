@@ -1,0 +1,53 @@
+name: tkj3-practice
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Jalankan node scripts/prepare-practice-docker.mjs}
+      MARIADB_DATABASE: tkj3_practice
+      MARIADB_USER: tkj_practice
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Jalankan node scripts/prepare-practice-docker.mjs}
+    volumes:
+      - practice_db_data:/var/lib/mysql
+      - ./database/practice-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./docker/practice-init/02-students.sql:/docker-entrypoint-initdb.d/02-students.sql:ro
+      - ./database/migrations/002_add_accounts.sql:/docker-entrypoint-initdb.d/03-accounts.sql:ro
+      - ./docker/practice-init/04-permissions.sql:/docker-entrypoint-initdb.d/04-permissions.sql:ro
+    # App berbagi jaringan db sehingga MariaDB dapat diakses lewat loopback.
+    # Hanya port website yang dipublikasikan ke laptop, bukan port MariaDB.
+    ports:
+      - "${PRACTICE_HOST:-127.0.0.1}:${PRACTICE_WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 20s
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.practice
+    restart: unless-stopped
+    init: true
+    network_mode: "service:db"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      DB_HOST: 127.0.0.1
+      DB_PORT: "3306"
+      DB_USER: tkj_practice
+      DB_PASSWORD: ${DB_PASSWORD:?Jalankan node scripts/prepare-practice-docker.mjs}
+      DB_NAME: tkj3_practice
+      DATA_SOURCE: mariadb
+      NEXT_PUBLIC_SCHOOL_NAME: ${NEXT_PUBLIC_SCHOOL_NAME:-SMK Telkom Malang}
+      PRACTICE_HOST: ${PRACTICE_HOST:-127.0.0.1}
+      APP_ORIGIN: http://${PRACTICE_HOST:-127.0.0.1}:${PRACTICE_WEB_PORT:-3000}
+
+volumes:
+  practice_db_data:

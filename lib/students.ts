@@ -54,6 +54,7 @@ export async function getStudentCount(): Promise<number> {
   const [rows] = await getDatabasePool().execute<CountRow[]>(
     "SELECT COUNT(*) AS total FROM siswa",
   );
+
   return Number(rows[0]?.total ?? 0);
 }
 
@@ -77,7 +78,9 @@ export async function getStudents(rawSearch = ""): Promise<StudentSummary[]> {
   if (isMockDataSource()) {
     const normalizedSearch = search.toLocaleLowerCase("id-ID");
     return mockStudents.filter(
-      (student) => !normalizedSearch || student.namaLengkap.toLocaleLowerCase("id-ID").includes(normalizedSearch),
+      (student) =>
+        !normalizedSearch ||
+        student.namaLengkap.toLocaleLowerCase("id-ID").includes(normalizedSearch),
     );
   }
 
@@ -89,15 +92,46 @@ export async function getStudents(rawSearch = ""): Promise<StudentSummary[]> {
        FROM siswa
        ORDER BY nama_lengkap ASC`,
     );
+
     return rows.map(toStudentSummary);
   }
 
   // SENGAJA RENTAN: string input langsung dipakai pada query MariaDB.
-  const [rows] = await pool.query<StudentSummaryRow[]>(buildPracticeSearchQuery(search));
-  return rows.map(toStudentSummary);
+  const query = buildPracticeSearchQuery(search);
+
+  console.log("\n========== SQL DEBUG ==========");
+  console.log("SEARCH:", search);
+  console.log("SQL QUERY:", query);
+  console.log("===============================\n");
+
+  try {
+    const [rows] = await pool.query<StudentSummaryRow[]>(query);
+    return rows.map(toStudentSummary);
+  } catch (error: unknown) {
+    const err = error as {
+      code?: string;
+      errno?: number;
+      sqlState?: string;
+      sqlMessage?: string;
+      sql?: string;
+      message?: string;
+    };
+
+    console.error("\n========== DATABASE ERROR ==========");
+    console.error("CODE:", err.code);
+    console.error("ERRNO:", err.errno);
+    console.error("SQL STATE:", err.sqlState);
+    console.error("MESSAGE:", err.sqlMessage ?? err.message);
+    console.error("SQL:", err.sql ?? query);
+    console.error("====================================\n");
+
+    throw error;
+  }
 }
 
-export async function getStudentById(rawId: unknown): Promise<StudentProfile | null> {
+export async function getStudentById(
+  rawId: unknown,
+): Promise<StudentProfile | null> {
   const id = parsePositiveInteger(rawId);
   if (!id) return null;
 

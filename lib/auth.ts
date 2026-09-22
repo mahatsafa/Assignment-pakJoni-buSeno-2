@@ -6,6 +6,7 @@ import { getDatabasePool } from "@/lib/db";
 import { isMockDataSource } from "@/lib/mock-data";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { HttpError } from "@/lib/http-security";
+import { cookieOptions } from "@/lib/auth-cookie";
 
 export type Account = { id: number; username: string; email: string };
 interface AccountRow extends RowDataPacket, Account { password_hash: string }
@@ -18,18 +19,6 @@ function requireDatabase() {
   if (isMockDataSource()) {
     throw new HttpError("Login perlu MariaDB. Atur DATA_SOURCE=mariadb dan jalankan migrasi akun.", 503);
   }
-}
-
-function cookieOptions() {
-  const origin = process.env.APP_ORIGIN;
-  if (process.env.NODE_ENV === "production" && !origin) {
-    throw new HttpError("APP_ORIGIN belum diatur pada server.", 503);
-  }
-  const url = new URL(origin || "http://127.0.0.1:3000");
-  if (url.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-    throw new HttpError("Login di luar localhost memerlukan HTTPS.", 503);
-  }
-  return { httpOnly: true, sameSite: "lax" as const, secure: url.protocol === "https:", path: "/" };
 }
 
 export async function registerAccount(input: { username: string; email: string; password: string }): Promise<Account> {

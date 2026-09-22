@@ -47,6 +47,43 @@ test("mutasi menolak Origin asing atau tanpa Origin", () => {
   }
 });
 
+test("Docker menerima alias loopback pada port browser yang dikonfigurasi", () => {
+  const env = { NODE_ENV: "development", APP_ORIGIN: "http://127.0.0.1:3001/" };
+  for (const origin of ["http://127.0.0.1:3001", "http://localhost:3001", "http://[::1]:3001"]) {
+    // Request URL dapat berisi port INTERNAL container, bukan port browser.
+    requireSameOrigin(new Request("http://127.0.0.1:3000/api/auth/register", { headers: { Origin: origin } }), env);
+  }
+  requireSameOrigin(new Request("http://localhost:3000/api/auth/login", {
+    headers: { Origin: "http://127.0.0.1:3001" },
+  }), { ...env, APP_ORIGIN: "http://localhost:3001" });
+});
+
+test("alias lokal tidak mengizinkan port lain, protokol lain atau domain mirip", () => {
+  const env = { NODE_ENV: "development", APP_ORIGIN: "http://127.0.0.1:3001" };
+  for (const origin of [undefined, "null", "not a URL", "http://localhost:3000", "https://localhost:3001",
+    "http://localhost.evil.test:3001", "http://127.0.0.1.evil.test:3001", "http://127.0.0.2:3001",
+    "http://192.168.1.5:3001", "http://localhost:3001/path", "http://user@localhost:3001",
+    "http://localhost:3001#fragment", "http://localhost:3001/?query=1"]) {
+    const headers: Record<string, string> = origin ? { Origin: origin, "X-Forwarded-Host": "localhost:3001" } : {};
+    assert.throws(() => requireSameOrigin(new Request("http://127.0.0.1:3000/api/auth/register", { headers }), env),
+      (error: unknown) => error instanceof HttpError && error.status === 403);
+  }
+});
+
+test("production tetap memerlukan Origin persis dan konfigurasi valid", () => {
+  const request = new Request("http://127.0.0.1:3000", { headers: { Origin: "http://localhost:3001" } });
+  assert.throws(() => requireSameOrigin(request, { NODE_ENV: "production", APP_ORIGIN: "http://127.0.0.1:3001" }), HttpError);
+  assert.throws(() => requireSameOrigin(request, { NODE_ENV: "production" }),
+    (error: unknown) => error instanceof HttpError && error.status === 503);
+  for (const APP_ORIGIN of ["invalid", "http://user:password@localhost:3001", "http://localhost:3001/register", "file:///tmp", "https://example.test/?q=1"]) {
+    assert.throws(() => requireSameOrigin(request, { NODE_ENV: "development", APP_ORIGIN }),
+      (error: unknown) => error instanceof HttpError && error.status === 503);
+  }
+  requireSameOrigin(new Request("http://internal:3000", { headers: { Origin: "https://school.example.test" } }),
+    { NODE_ENV: "production", APP_ORIGIN: "https://school.example.test/" });
+  assert.throws(() => requireSameOrigin(request, { NODE_ENV: "development", APP_ORIGIN: "https://school.example.test" }), HttpError);
+});
+
 test("JSON rusak, array dan body besar ditolak", async () => {
   const request = (body: string) => new Request("http://127.0.0.1", { method: "POST", headers: { "Content-Type": "application/json" }, body });
   assert.deepEqual(await readJsonBody(request('{"username":"siswa"}')), { username: "siswa" });

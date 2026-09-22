@@ -8,11 +8,40 @@ export class HttpError extends Error {
   }
 }
 
-export function requireSameOrigin(request: Request) {
-  const expected = process.env.APP_ORIGIN || new URL(request.url).origin;
-  if (request.headers.get("origin") !== expected) {
-    throw new HttpError("Permintaan harus berasal dari website ini.", 403);
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+export function requireSameOrigin(
+  request: Request,
+  env: { APP_ORIGIN?: string; NODE_ENV?: string } = process.env,
+) {
+  const configured = env.APP_ORIGIN?.trim();
+  if (env.NODE_ENV === "production" && !configured) {
+    throw new HttpError("APP_ORIGIN belum diatur pada server.", 503);
   }
+
+  let expected: URL;
+  try {
+    expected = new URL(configured || new URL(request.url).origin);
+    if (!["http:", "https:"].includes(expected.protocol) || expected.username || expected.password ||
+        expected.pathname !== "/" || expected.search || expected.hash) throw new Error();
+  } catch {
+    throw new HttpError("APP_ORIGIN harus berupa alamat website, misalnya http://127.0.0.1:3001, tanpa path atau query.", 503);
+  }
+
+  const origin = request.headers.get("origin");
+  if (origin === expected.origin) return;
+
+  // Proxy praktikum menerima kedua nama loopback. Izinkan alias yang eksplisit
+  // hanya saat development, dengan protokol dan port browser yang SAMA.
+  // Port internal Docker (3000) tidak menggantikan port APP_ORIGIN (mis. 3001).
+  if (env.NODE_ENV === "development" && origin && LOOPBACK_HOSTS.has(expected.hostname)) {
+    let source: URL | undefined;
+    try { source = new URL(origin); } catch { /* Origin tidak valid tetap ditolak. */ }
+    if (source && source.origin === origin && LOOPBACK_HOSTS.has(source.hostname) &&
+        source.protocol === expected.protocol && source.port === expected.port) return;
+  }
+
+  throw new HttpError(`Permintaan harus berasal dari website ini. Buka ${expected.origin} dan coba lagi. Jika port berubah, sesuaikan APP_ORIGIN pada server.`, 403);
 }
 
 export async function readJsonBody(request: Request): Promise<Record<string, unknown>> {

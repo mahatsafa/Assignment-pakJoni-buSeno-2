@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
+import { getPracticeLanOrigin } from "./lib/practice-network.mjs";
+
+const lanOrigin = getPracticeLanOrigin(process.env);
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: lanOrigin ? [lanOrigin.hostname] : [],
   turbopack: {
     root: process.cwd(),
   },
