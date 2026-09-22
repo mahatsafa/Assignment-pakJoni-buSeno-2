@@ -1,0 +1,2 @@
+docker compose --env-file .env.docker.local -f docker-compose.practice.yml down
+docker compose --env-file .env.docker.local -f docker-compose.practice.yml up --build -d
